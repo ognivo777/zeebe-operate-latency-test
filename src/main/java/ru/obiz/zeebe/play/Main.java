@@ -16,7 +16,9 @@ import java.time.Instant;
 import java.util.Properties;
 
 public class Main {
-    public static void main(String[] args) {
+
+
+    public static void main2(String[] args) {
         System.out.println("Hello world!");
 
         Properties properties = new Properties();
@@ -51,7 +53,8 @@ public class Main {
             final int version = process.getVersion();
             String resourceName = process.getResourceName();
             String bpmnProcessId = process.getBpmnProcessId();
-            System.out.printf("Workflow deployed.\n\tBpmn id: %s\n\tResource name: %s\n\tVersion: %s\n",bpmnProcessId, resourceName, version);
+            long processDefinitionKey = process.getProcessDefinitionKey();
+            System.out.printf("Workflow deployed.\n\tID: %d\n\tBpmn id: %s\n\tResource name: %s\n\tVersion: %s\n",processDefinitionKey, bpmnProcessId, resourceName, version);
 
 //          Create process instance and wait result
             ProcessInstanceResult instanceResult = client.newCreateInstanceCommand()
@@ -60,6 +63,9 @@ public class Main {
                     .withResult()
                     .send()
                     .join();
+
+
+//            SearchQueryResponse<ProcessInstance> queryResponse = client.newProcessInstanceQuery().filter(filter -> filter.completed(true).bpmnProcessId(bpmnProcessId)).sort(ProcessInstanceSort::startDate).send().join();
 
             Instant resultOfPI = Instant.now();
             String processInstanceKey = Long.toString(instanceResult.getProcessInstanceKey());
