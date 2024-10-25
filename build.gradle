@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'ru.obiz.zeebe.play'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+var mainClass = 'ru.obiz.zeebe.play.Main'
+
+application {
+    mainClassName = mainClass
+}
+
+dependencies {
+    implementation 'io.camunda:zeebe-client-java:8.6.3'
+// https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
+    testImplementation 'org.slf4j:slf4j-simple:2.0.16'
+
+//    testImplementation platform('org.junit:junit-bom:5.10.0')
+//    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+
+// простая сборка джарника с библиотеками
+jar {
+    manifest {
+        attributes "Main-Class": mainClass
+        attributes(
+                "Class-Path": configurations.runtimeClasspath.collect { it.getName() }.collect{'libs/' + it}.join(' '))
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
