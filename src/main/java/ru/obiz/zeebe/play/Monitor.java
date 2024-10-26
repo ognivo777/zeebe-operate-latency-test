@@ -68,6 +68,7 @@ public class Monitor {
                 if(remainNotFound ==0) {
                     executor.shutdown();
                     registry.printStats();
+                    System.exit(0);
                 }
             } else {
                 System.out.println("ERROR on operate search: " + httpResponse.statusCode());
