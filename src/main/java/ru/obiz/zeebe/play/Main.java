@@ -15,8 +15,6 @@ import java.util.Properties;
 public class Main {
 
     public static void main(String[] args) {
-        System.out.println("Hello world!");
-
         Properties properties = new Properties();
         properties.put("zeebe.client.broker.gateway-address", "127.0.0.1:26500");
         properties.put("zeebe.client.security.plaintext", "true");
