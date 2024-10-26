@@ -27,6 +27,7 @@ public class Registry {
     }
 
     public void markFound(Long id) {
+        //TODO save and print some times average delay of last 50 PI-s
         foundInstances.add(id);
         instances.get(id).markFoundInOperate();
     }

@@ -14,7 +14,6 @@ import java.util.Properties;
 
 public class Main {
 
-
     public static void main(String[] args) {
         System.out.println("Hello world!");
 
@@ -57,33 +56,6 @@ public class Main {
             Registry registry = new Registry();
             new Monitor(processDefinitionKey, registry, httpClient).start();
             new Producer(5, registry, zeebeClient, bpmnProcessId).startFor(500);
-
-
-//            SearchQueryResponse<ProcessInstance> queryResponse = zeebeClient.newProcessInstanceQuery().filter(filter -> filter.completed(true).bpmnProcessId(bpmnProcessId)).sort(ProcessInstanceSort::startDate).send().join();
-
-//            Instant resultOfPI = Instant.now();
-//            String processInstanceKey = Long.toString(instanceResult.getProcessInstanceKey());
-//            System.out.println("processInstanceKey = " + processInstanceKey);
-
-            while(true) {
-//                HttpRequest request = HttpRequest.newBuilder()
-//                        .uri(new URI("http://localhost:8081/v1/process-instances/"+processInstanceKey))
-//                        .GET()
-//                        .build();
-
-//                HttpResponse<String> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-//                String body = httpResponse.body();
-//                System.out.println("httpResponse.body() = " + body);
-
-//                HttpResponse<Void> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-//                if(httpResponse.statusCode()==200)
-//                    break;
-
-                Thread.sleep(50);
-            }
-
-//            Instant foundInOperate = Instant.now();
-//            System.out.printf("Time waited: %.2f seconds\n",Duration.between(resultOfPI, foundInOperate).toMillis()/1000d);
 
         } catch (InterruptedException | URISyntaxException | IOException e) {
             throw new RuntimeException(e);
