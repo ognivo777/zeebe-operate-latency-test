@@ -2,6 +2,7 @@ package ru.obiz.zeebe.play;
 
 import com.google.common.util.concurrent.RateLimiter;
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.response.ProcessInstanceResult;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -23,17 +24,22 @@ public class Producer {
 
     public void startFor(long count) {
         new Thread(() -> {
-            while (createdCount.get()<count) {
+            do {
+                if(createdCount.get()%10==0) {
+                    System.out.println("createdCount = " + createdCount.get());
+                }
                 rateLimiter.acquire();
                 zeebeClient.newCreateInstanceCommand();
-                registry.add(zeebeClient.newCreateInstanceCommand()
+                ProcessInstanceResult instanceResult = zeebeClient.newCreateInstanceCommand()
                         .bpmnProcessId(bpmnProcessId)
                         .latestVersion()
                         .withResult()
                         .send()
-                        .join()
+                        .join();
+                //System.out.println("instanceResult.getProcessInstanceKey() = " + instanceResult.getProcessInstanceKey());
+                registry.add(instanceResult
                 );
-            }
+            } while (createdCount.incrementAndGet() < count);
         }).start();
     }
 }
