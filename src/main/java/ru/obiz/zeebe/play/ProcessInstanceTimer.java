@@ -5,13 +5,11 @@ import io.camunda.zeebe.client.api.response.ProcessInstanceResult;
 import java.time.Duration;
 import java.time.Instant;
 
-public class ProcessInstanceWrapper {
-    private final ProcessInstanceResult instance;
+public class ProcessInstanceTimer {
     private final Instant added;
     private Instant foundInOperate = null;
     private long waitTime;
-    public ProcessInstanceWrapper(final ProcessInstanceResult instance) {
-        this.instance = instance;
+    public ProcessInstanceTimer() {
         added  = Instant.now();
     }
 
