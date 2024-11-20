@@ -37,8 +37,7 @@ public class Producer {
                         .send()
                         .join();
                 //System.out.println("instanceResult.getProcessInstanceKey() = " + instanceResult.getProcessInstanceKey());
-                registry.add(instanceResult
-                );
+                registry.add(instanceResult.getProcessInstanceKey());
             } while (createdCount.incrementAndGet() < count);
         }).start();
     }

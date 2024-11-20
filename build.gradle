@@ -10,20 +10,27 @@ repositories {
     mavenCentral()
 }
 
-var mainClass = 'ru.obiz.zeebe.play.Main'
+var mainClass = 'ru.obiz.zeebe.play.OperateMonitorService'
+//var mainClass = 'ru.obiz.zeebe.play.ZeebeClientWithOperateMonitor'
 
 application {
     mainClassName = mainClass
 }
 
 dependencies {
+
+    // https://mvnrepository.com/artifact/javax.activation/activation
+    implementation 'javax.activation:activation:1.1.1'
+
     implementation 'io.camunda:zeebe-client-java:8.6.3'
+// https://mvnrepository.com/artifact/io.undertow/undertow-core
+    implementation 'io.undertow:undertow-core:2.3.18.Final'
+
 // https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
     testImplementation 'org.slf4j:slf4j-simple:2.0.16'
 
     // https://mvnrepository.com/artifact/com.google.guava/guava
     implementation 'com.google.guava:guava:33.3.1-jre'
-
 }
 
 

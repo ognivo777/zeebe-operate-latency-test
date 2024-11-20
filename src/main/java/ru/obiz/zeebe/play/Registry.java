@@ -1,21 +1,17 @@
 package ru.obiz.zeebe.play;
 
-import io.camunda.zeebe.client.api.response.ProcessInstanceResult;
-
-import java.sql.SQLOutput;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Registry {
-    private final ConcurrentHashMap<Long,ProcessInstanceWrapper> instances = new ConcurrentHashMap<>();
-    private Set<Long> foundInstances = Collections.synchronizedSet(new HashSet<>());
+    private final ConcurrentHashMap<Long, ProcessInstanceTimer> instances = new ConcurrentHashMap<>();
+    private final Set<Long> foundInstanceIds = Collections.synchronizedSet(new HashSet<>());
 
 
-    public void add(ProcessInstanceResult instance) {
-        instances.put(instance.getProcessInstanceKey(), new ProcessInstanceWrapper(instance));
-        //TODO
+    public void add(long instanceKey) {
+        instances.put(instanceKey, new ProcessInstanceTimer());
     };
 
     public boolean contains(Long id) {
@@ -23,11 +19,12 @@ public class Registry {
     }
 
     public boolean isNotFound(Long id) {
-        return !foundInstances.contains(id);
+        return !foundInstanceIds.contains(id);
     }
 
     public void markFound(Long id) {
-        foundInstances.add(id);
+        //TODO save and print some times average delay of last 50 PI-s
+        foundInstanceIds.add(id);
         instances.get(id).markFoundInOperate();
     }
 
@@ -35,14 +32,14 @@ public class Registry {
         if(instances.isEmpty()) {
             return -1; //prevent stop monitor before we accept any instances
         }
-        return instances.size() - foundInstances.size();
+        return instances.size() - foundInstanceIds.size();
     }
 
-    public void printStats() {
+    public String printStats() {
         long totalWait = 0;
-        for (ProcessInstanceWrapper value : instances.values()) {
+        for (ProcessInstanceTimer value : instances.values()) {
                 totalWait+=value.getWaitTime();
         }
-        System.out.println("totalWait/instances.size() = " + totalWait / (0d + instances.size()) );
+        return "totalWait/instances.size() = " + totalWait / (0d + instances.size());
     }
 }
