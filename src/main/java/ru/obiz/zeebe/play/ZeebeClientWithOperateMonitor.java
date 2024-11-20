@@ -48,7 +48,10 @@ public class ZeebeClientWithOperateMonitor {
 
             AtomicInteger zeroWaitedPICounter = new AtomicInteger(0);
             monitor.start(processDefinitionKey,
-                    r -> r.remainNotFound()==0 && zeroWaitedPICounter.incrementAndGet() >= zeroWaitedPICountToStop
+                    r -> {
+                        System.out.println(r.printStats());
+                        return r.remainNotFound() == 0 && zeroWaitedPICounter.incrementAndGet() >= zeroWaitedPICountToStop;
+                    }
             );
 
             new Producer(5, registry, zeebeClient, bpmnProcessId).startFor(500);
