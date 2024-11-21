@@ -1,0 +1,37 @@
+### GET version
+
+GET http://{{url}}/api/version
+
+###
+### POST request to init zeebe client
+
+POST http://{{url}}/api/zeebe/init
+
+> {% if (response.status==200) client.global.set("bpmn_id", response.body.bpmn_id+""); %}
+###
+### Start monitor
+
+POST http://{{url}}/api/monitor/{{bpmn_id}}
+
+###
+### PUT spawn new process instance
+
+POST http://{{url}}/api/zeebe/spawn/{{bpmn_id}}
+
+> {% client.global.set("spawned_id", response.body.instance_id+""); %}
+###
+###
+
+POST http://{{url}}/api/keys/{{spawned_id}}
+
+###
+### Get remaining
+
+GET http://{{url}}/api/stats/remaining
+
+###
+### Start monitor
+
+DELETE http://{{url}}/api/monitor/{{bpmn_id}}
+
+###

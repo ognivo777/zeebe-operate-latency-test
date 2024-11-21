@@ -61,7 +61,12 @@ public class Monitor implements AutoCloseable{
                     .uri(new URI(operateApiUrl + "/login?username=" + username + "&password=" + password))
                     .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
-            client.send(loginRequest, HttpResponse.BodyHandlers.discarding());
+            int statusCode = client.send(loginRequest, HttpResponse.BodyHandlers.discarding()).statusCode();
+            if(statusCode >= 200 && statusCode < 300) {
+                loggedIn.set(true);
+            } else {
+                System.out.println("Can't login to operate API!");
+            }
         } finally {
             loginLock.unlock();
         }

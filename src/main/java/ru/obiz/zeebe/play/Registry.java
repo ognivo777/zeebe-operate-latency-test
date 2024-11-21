@@ -40,6 +40,14 @@ public class Registry {
         for (ProcessInstanceTimer value : instances.values()) {
                 totalWait+=value.getWaitTime();
         }
-        return "totalWait/instances.size() = " + totalWait / (0d + instances.size());
+        if(totalWait==0) {
+            return "No data found";
+        } else {
+            return "totalWait/instances.size() = " + totalWait / (0d + instances.size());
+        }
+    }
+
+    public long size() {
+        return instances.size();
     }
 }
