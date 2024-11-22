@@ -11,25 +11,28 @@ import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Monitor implements AutoCloseable{
-    private long processDefinitionKey;
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
     private final Registry registry;
     private final HttpClient client;
-    private final String SEARCH_REQUEST = "{\"query\":{\"processIds\":[\"%s\"],\"completed\":true,\"finished\":true,\"startDateAfter\":\"%s\"},\"sorting\":{\"sortBy\":\"startDate\",\"sortOrder\":\"desc\"},\"pageSize\":50}";
-    private final String searchAfter;
+    private final String SEARCH_REQUEST = "{\"query\":{\"processIds\":[%s],\"completed\":true,\"finished\":true,\"startDateAfter\":\"%s\"},\"sorting\":{\"sortBy\":\"startDate\",\"sortOrder\":\"desc\"},\"pageSize\":50}";
+    private String searchAfter;
     private ScheduledThreadPoolExecutor executor;
     private final String operateApiUrl;
     private final String username;
     private final String password;
+    private final Set<Long> monitoredProcesses = ConcurrentHashMap.newKeySet();
 
     private final AtomicBoolean loggedIn = new AtomicBoolean(false);
     private final Lock loginLock = new ReentrantLock();
@@ -40,19 +43,28 @@ public class Monitor implements AutoCloseable{
         this.username = username;
         this.password = password;
 
+        executor = new ScheduledThreadPoolExecutor(1); //TODO parametrize max count of parallel monitors
+
         this.client = HttpClient.newBuilder()
                 .cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
                 .build();
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+        updateSearchAfter();
 
-        searchAfter = LocalDateTime.now()
-                .atOffset(ZoneOffset.ofTotalSeconds(TimeZone.getDefault().getRawOffset()/1000))
-                .format(formatter) + "+0300"; //таймзону которую генерит форматтер по Z (+03) оперейт не принимает
-        System.out.println("searchAfter = " + searchAfter);
+        int period = 1;
+        int initialDelay = 1;
+        executor.scheduleAtFixedRate(
+                () -> {
+                    if(!loggedIn.get() || monitoredProcesses.isEmpty()) return;
+                    String ids = monitoredProcesses.stream().map("\"%d\""::formatted).collect(Collectors.joining(","));
+                    performCheckNewDataBringToOperate(ids);
+                },
+                initialDelay, period, TimeUnit.SECONDS
+        );
+
     }
 
-    private void login() throws IOException, InterruptedException, URISyntaxException {
+    private void loginIfAlreadyNot() throws IOException, InterruptedException, URISyntaxException {
         if (loggedIn.get()) return;
         try {
             loginLock.lock();
@@ -72,29 +84,29 @@ public class Monitor implements AutoCloseable{
         }
     }
 
-    public void start(long processDefinitionKey, Predicate<Registry> stopPredicate) throws IOException, InterruptedException, URISyntaxException {
-        login();
-        this.processDefinitionKey = processDefinitionKey;
-        executor = new ScheduledThreadPoolExecutor(1);
-        int period = 1;
-        int initialDelay = 1;
-        executor
-                .scheduleAtFixedRate(
-                        () -> {
-                            performCheckNewDataBringToOperate();
-                            if(stopPredicate.test(registry)) {
-                                executor.shutdown();
-                            }
-                        }, initialDelay, period, TimeUnit.SECONDS
-                );
+    public boolean start(long processDefinitionKey) throws IOException, InterruptedException, URISyntaxException {
+        loginIfAlreadyNot();
+        return monitoredProcesses.add(processDefinitionKey);
     }
 
-    private void performCheckNewDataBringToOperate() {
+    public boolean stop(long processDefinitionKey) {
+        return monitoredProcesses.remove(processDefinitionKey);
+    }
+
+    public void updateSearchAfter() {
+        searchAfter = LocalDateTime.now()
+                .atOffset(ZoneOffset.ofTotalSeconds(TimeZone.getDefault().getRawOffset()/1000))
+                .format(DATE_TIME_FORMATTER) + "+0300"; //таймзону которую генерит форматтер по Z (+03) оперейт не принимает
+        System.out.println("searchAfter = " + searchAfter);
+    }
+
+    private void performCheckNewDataBringToOperate(String processDefinitionKeys) {
         try {
+
             HttpRequest loginRequest = HttpRequest.newBuilder()
                     .uri(new URI(operateApiUrl + "/process-instances"))
                     .header("Content-Type","application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(SEARCH_REQUEST.formatted(processDefinitionKey, searchAfter)))
+                    .POST(HttpRequest.BodyPublishers.ofString(SEARCH_REQUEST.formatted(processDefinitionKeys, searchAfter)))
                     .build();
 
             HttpResponse<String> httpResponse = client.send(loginRequest, HttpResponse.BodyHandlers.ofString());
@@ -121,5 +133,6 @@ public class Monitor implements AutoCloseable{
     @Override
     public void close() throws Exception {
         client.close();
+        executor.shutdownNow();
     }
 }

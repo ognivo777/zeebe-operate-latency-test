@@ -28,8 +28,6 @@ public class OperateMonitorService {
                 Monitor operateMonitor = new Monitor(registry, operateApiUrl, operateUsername, operatePassword);
                 Producer producer = new Producer(registry, null);) {
 
-            Map<Long, AtomicBoolean> stopFlags = new ConcurrentHashMap<>();
-
             //Start api
             Undertow.Builder builder = Undertow.builder();
             Undertow undertow = builder
@@ -41,29 +39,22 @@ public class OperateMonitorService {
                                         exchange.getResponseSender().send(asJSON("version", version));
                                     })
                                     .post("/keys/{nextProcessInstanceKey}", this::addKey)
+                                    .delete("/keys/{nextProcessInstanceKey}", this::removeKey)
+                                    .delete("/keys", this::removeAllKeys)
                                     .delete("/monitor/{processDefinitionKey}", exchange -> {
                                         long processDefinitionKey = Long.parseLong(exchange.getQueryParameters().get("processDefinitionKey").getLast());
-                                        if (stopFlags.containsKey(processDefinitionKey)) {
-                                            AtomicBoolean stopFlag = stopFlags.get(processDefinitionKey);
-                                            if(!stopFlag.get()) {
-                                                stopFlag.set(true);
-                                                jsonResponse(exchange,"status", "Stop flag is set");
-                                            } else {
-                                                jsonErrorResponse(exchange, "Already sopped", StatusCodes.PRECONDITION_FAILED);
-                                            }
+                                        if(operateMonitor.stop(processDefinitionKey)) {
+                                            jsonResponse(exchange,"status", "Stopping success");
                                         } else {
                                             jsonErrorResponse(exchange, "Not found", StatusCodes.NOT_FOUND);
                                         }
                                     })
                                     .post("/monitor/{processDefinitionKey}", exchange -> {
                                         long processDefinitionKey = Long.parseLong(exchange.getQueryParameters().get("processDefinitionKey").getLast());
-                                        if(stopFlags.containsKey(processDefinitionKey)) {
-                                            jsonErrorResponse(exchange, "Already started", StatusCodes.CONFLICT);
+                                        if(operateMonitor.start(processDefinitionKey)) {
+                                            jsonResponse(exchange,"status", "Started for process " + processDefinitionKey);
                                         } else {
-                                            AtomicBoolean stopFlag = new AtomicBoolean(false);
-                                            operateMonitor.start(processDefinitionKey, r -> stopFlag.get());
-                                            stopFlags.put(processDefinitionKey, stopFlag);
-                                            exchange.getResponseSender().send("{\"status\": \"Stared\"}");
+                                            jsonErrorResponse(exchange, "Already started", StatusCodes.CONFLICT);
                                         }
                                     })
                                     .get("/stats/remaining", e -> jsonResponse(e, "stats", registry.printStats()))
@@ -119,12 +110,35 @@ public class OperateMonitorService {
 
     private void fallback(HttpServerExchange exchange) {
         //Todo return error
+
+    }
+
+    private void removeAllKeys(HttpServerExchange exchange) {
+        registry.removeAll();
+        jsonResponse(exchange, "status", "ok");
+    }
+
+    private void removeKey(HttpServerExchange exchange) {
+        String piKey = exchange.getQueryParameters().get("nextProcessInstanceKey").getLast();
+        ProcessInstanceTimer timer = registry.remove(Long.parseLong(piKey));
+        if(timer != null) {
+            jsonErrorResponse(exchange, "Not found", StatusCodes.NOT_FOUND);
+        } else {
+            jsonResponse(exchange, "result", "%d".formatted(piKey, timer.getWaitTime()));
+        }
     }
 
     private void addKey(HttpServerExchange exchange) {
         String piKey = exchange.getQueryParameters().get("nextProcessInstanceKey").getLast();
-        registry.add(Long.parseLong(piKey));
-        jsonResponse(exchange, "size", registry.size());
+        try {
+            if (registry.add(Long.parseLong(piKey))) {
+                jsonResponse(exchange, "size", registry.size());
+            } else {
+                jsonErrorResponse(exchange, "Already in monitoring list", StatusCodes.CONFLICT);
+            }
+        } catch (NumberFormatException e) {
+            jsonErrorResponse(exchange, "Wrong number: " + piKey, StatusCodes.BAD_REQUEST);
+        }
     }
 
     public static void main(String[] args) {

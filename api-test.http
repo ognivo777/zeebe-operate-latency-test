@@ -30,8 +30,14 @@ POST http://{{url}}/api/keys/{{spawned_id}}
 GET http://{{url}}/api/stats/remaining
 
 ###
-### Start monitor
+### Remove monitor
 
 DELETE http://{{url}}/api/monitor/{{bpmn_id}}
 
 ###
+###
+
+DELETE http://{{url}}/api/keys
+
+###
+

@@ -1,12 +1,6 @@
 package ru.obiz.zeebe.play;
 
-import io.camunda.zeebe.client.api.response.DeploymentEvent;
-import io.camunda.zeebe.client.api.response.Process;
-import io.camunda.zeebe.client.api.response.Topology;
-
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ZeebeClientWithOperateMonitor {
 
@@ -19,8 +13,6 @@ public class ZeebeClientWithOperateMonitor {
         String operateApiUrl = "http://localhost:8081/api";
         String username = "demo";
         String password = "demo";
-        int zeroWaitedPICountToStop = 5;
-
 
         Registry registry = new Registry();
 
@@ -28,17 +20,11 @@ public class ZeebeClientWithOperateMonitor {
              Monitor monitor = new Monitor(registry,operateApiUrl, username, password);
              Producer producer = new Producer(registry, zeebeProperties);
         ) {
-
             producer.init();
             long processDefinitionKey = producer.deployBPMN("simplest.bpmn");
 
-            AtomicInteger zeroWaitedPICounter = new AtomicInteger(0);
-            monitor.start(processDefinitionKey,
-                    r -> {
-                        System.out.println(r.printStats());
-                        return r.remainNotFound() == 0 && zeroWaitedPICounter.incrementAndGet() >= zeroWaitedPICountToStop;
-                    }
-            );
+//            AtomicInteger zeroWaitedPICounter = new AtomicInteger(0);
+            monitor.start(processDefinitionKey);
 
             producer.startFor(500, 5);
 

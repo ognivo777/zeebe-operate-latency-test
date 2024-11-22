@@ -10,8 +10,12 @@ public class Registry {
     private final Set<Long> foundInstanceIds = Collections.synchronizedSet(new HashSet<>());
 
 
-    public void add(long instanceKey) {
+    public boolean add(long instanceKey) {
+        if(instances.containsKey(instanceKey)) {
+            return false;
+        }
         instances.put(instanceKey, new ProcessInstanceTimer());
+        return true;
     };
 
     public boolean contains(Long id) {
@@ -49,5 +53,13 @@ public class Registry {
 
     public long size() {
         return instances.size();
+    }
+
+    public ProcessInstanceTimer remove(long id) {
+        return instances.remove(id);
+    }
+
+    public void removeAll() {
+        instances.clear();
     }
 }
